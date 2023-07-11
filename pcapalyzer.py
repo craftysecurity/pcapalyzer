@@ -4,6 +4,8 @@ from collections import defaultdict
 import json
 import sys
 
+# Get key from apilayer.com/whois to retrieve domain information
+
 # protocol names from JSON file
 def load_protocol_names(filename):
     with open(filename, 'r') as file:

@@ -99,9 +99,11 @@ for ip, info in ip_info.items():
 
         tot_string += "\n"
 
+    # Print information
     print(tot_string)
 
 
+    # Write the content to a file
     with open('output.txt', 'w') as file:
         file.write(tot_string)
 

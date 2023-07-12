@@ -6,7 +6,8 @@ import sys
 
 # Get key from apilayer.com/whois to retrieve domain information
 
-# protocol names from JSON file
+
+# Protocol names from JSON file
 def load_protocol_names(filename):
     with open(filename, 'r') as file:
         return json.load(file)
@@ -38,24 +39,30 @@ for packet in packets:
         if UDP in packet and DNS in packet:
             dns = packet[DNS]
             if dns.qr == 1 and dns.an:
-                domain = dns.an.rdata.decode('utf-8')  
+                domain = dns.an.rdata.decode('utf-8')
                 ip_info[packet[IP].src]['domain'] = domain
 
-    except Exception as e:
+    except Exception as _:
         continue
 
-# call function to retrieve domain information
+
 def get_domain_info(domain):
+
+    """ Function to retriver domain information """
+
     url = f"https://api.apilayer.com/whois/query?domain={domain}"
     headers = {
         "apikey": "INSERT API KEY"
     }
     response = requests.get(url, headers=headers)
+
+
     if response.status_code == 200:
         data = response.json()
         result = data.get('result', {})
         registration_date = result.get('creation_date')
         registrar = result.get('registrar')
+
         return registration_date, registrar
     else:
         return None, None
@@ -64,56 +71,41 @@ def get_domain_info(domain):
 original_stdout = sys.stdout
 
 # Open a new file to redirect the output
-with open('output.txt', 'w') as file:
-    for ip, info in ip_info.items():
+for ip, info in ip_info.items():
 
-        # Print the IP/Domain to the terminal
-        print(f"IP: {ip}")
-        print(f"Domain: {info['domain']}")
+    # Total string that is going to be print
+    tot_string: str = ""
 
-        # Print the IP/Domain to the file
-        file.write("IP/Domain:\n")
-        file.write(f"IP: {ip}\n")
-        file.write(f"Domain: {info['domain']}\n\n")
+    # Print the IP/Domain to the terminal
+    tot_string += f"ID/Domain:\nIP: {ip}\nDomain: {info['domain']}"
 
-        # Print the collected information to the terminal
-        print(f"Outgoing packet count: {info['outgoing_packet_count']}")
-        print(f"Total data to IP/Domain: {info['total_data']} bytes")
-        print("Destination ports for outgoing packets:")
-        for port in info['destination_ports']:
-            print(port)
-        print("Protocols:")
-        for protocol in info['protocols']:
-            print(protocol)
-        print()
+    # Print the collected information to the terminal
+    tot_string += f"Outgoing packet count: {info['outgoing_packet_count']}\n"
+    tot_string += f"Total data to IP/Domain: {info['total_data']} bytes\n"
+    tot_string += "Destination ports for outgoing packets:\n"
+    tot_string += "\n".join(info["destination_ports"])
+    tot_string += "Protocols:" + "\n".join(info["protocols"])
 
-        # Print to the file
-        file.write(f"Outgoing packet count: {info['outgoing_packet_count']}\n")
-        file.write(f"Total data to IP/Domain: {info['total_data']} bytes\n")
-        file.write("Destination ports for outgoing packets:\n")
+    # Retrieve domain information
+    domain = info['domain']
+    if domain != 'Not available':
+        registration_date, registrar = get_domain_info(domain)
 
-        for port in info['destination_ports']:
-            file.write(f"{port}\n")
-        file.write("Protocols:\n")
+        if registration_date:
+            tot_string += f"Registration Date: {registration_date}"
 
-        for protocol in info['protocols']:
-            file.write(f"{protocol}\n")
-        file.write('\n')
+        if registrar:
+            tot_string += f"Registrar: {registrar}"
 
-        # Retrieve domain information
-        domain = info['domain']
-        if domain != 'Not available':
-            registration_date, registrar = get_domain_info(domain)
-            
-            if registration_date:
-                print(f"Registration Date: {registration_date}")
-                file.write(f"Registration Date: {registration_date}\n")
+        tot_string += "\n"
 
-            if registrar:
-                print(f"Registrar: {registrar}")
-                file.write(f"Registrar: {registrar}\n")
+    # Print information
+    print(tot_string)
 
-            print()
-            file.write('\n')
+
+    # Write the content to a file
+    with open('output.txt', 'w') as file:
+        file.write(tot_string)
+
 
 sys.stdout = original_stdout
